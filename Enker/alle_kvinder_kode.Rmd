@@ -1,0 +1,71 @@
+---
+title: "Hustru eller Enke"
+author: "Laura Bundgaard Jørgensen"
+date: "2026-11-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+installerer de pakker jeg skal bruge
+```{r, echo=FALSE}
+
+install.packages(c("readr", "scales", "packman", "dplyr"))
+
+pacman::p_load(ggplot2, dplyr, tidyr)
+```
+```{r}
+library(readr)
+
+```
+
+Jeg henter min database. den er delt med et ; og ikke , derfor bruger jeg csv2 funktionen og ikke kun csv.
+
+```{r}
+df_alle <- read_csv2("/work/CulturalDataScience/Enker/df_alle.csv")
+
+```
+
+
+Nu vil jeg gerne have det omregnet til procenter (spurgte chatgpt om hjælp her samt andre hjemmesider. til at inde den rigtige funktion mutate er god til at man kan mutere sit data jeg har her ændret kolonnerne og sagt at de skal være lig med det regnestyke jeg har sat ind efterfølgende. og at i alt kollonen skal give 100
+
+
+```{r}
+Df_alle_percentage<- df_alle%>%
+  mutate(gift_overlevede_ikke_mand=round(gift_overlevede_ikke_mand/`I alt`*100, 1),
+         enke=round(enke/`I alt`*100, 1),
+         ugift=round(ugift/`I alt`*100, 1),
+         uvist=round(uvist/`I alt`*100, 1),
+         "I alt"= 100)
+
+Df_alle_percentage
+```
+
+
+
+nu visualiserer jeg dataen
+
+skal bruge as.matrixfunktionen fordi for at kunne bruge barplot funktionen skal den have en vector eller en matrix og jeg har en dataframe lige nu. matrix funktionen kom jeg frem til ved hjælp af chatgpt. 
+
+```{r}
+
+barplot(as.matrix(Df_alle_percentage[, c("gift_overlevede_ikke_mand", "enke", "ugift", "uvist")]), 
+        width = 1, 
+        names.arg = c("gift, men død før husbond", "enke","ugift", "uvist"),
+        beside = TRUE,
+        border = c("white"),
+        col = c("lightblue","orange","pink"),
+        ylim = c(0, 100),
+        main = "Kvindernes civilstatus",
+        xlab = "Civilstatus", 
+        ylab = "procent (%)",
+        )
+
+legend(x = "topright",
+               legend = c("1350-1500", "1500-1600", "1600-1660"),
+               fill = c("lightblue", "orange", "pink"))
+```
+
+

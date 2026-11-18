@@ -1,0 +1,492 @@
+---
+title: "Hustru eller enke"
+author: "Laura Bundgaard Jørgensen"
+date: "2026-11-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Indledende arbejde
+installerer de pakker jeg skal bruge
+```{r, echo=FALSE}
+
+install.packages(c("readr", "scales", "packman", "dplyr"))
+
+pacman::p_load(ggplot2, dplyr, tidyr)
+```
+
+Jeg henter min database. den er delt med et ; og ikke , derfor bruger jeg csv2 funktionen og ikke kun csv.
+```{r}
+library(readr)
+```
+
+
+
+```{r}
+df_enker <- read_csv2("/work/CulturalDataScience/Enker/df_enker.csv")
+
+```
+
+## antallet af kvinder der giftede sig igen eller forblev enker. grafer for i alt og fordelt ud over de tre perioder.
+
+
+```{r}
+
+gee<-count(df_enker, Gift_eller_Enke) #tæller hvor mange der blev gift igen og hvor mange der blev enker og laver et dataframe med det 
+
+gee
+```
+
+
+FIND UD AF HVORDAN JEG TILFØJER EN I ALT KOLONNE til det ovenover
+
+```{r}
+#omregner det til procent. muterer min dataframe til at have en ny kolonne
+gee_clean<-na.omit(gee)
+
+gee_percentage<-gee_clean%>%
+  mutate("I procent(%)"=round(n/sum(n)*100, 1))
+
+gee_percentage
+```
+
+Visuel fremstilling for hele perioden 1350-1660 hvor mange forblev enker og hvor mange valgte at gifte sig igen i procent
+```{r}
+#Laver et barplot
+barplot(as.matrix(gee_percentage [, c("I procent(%)")]),
+        width = 0.5,
+        names.arg= c("Forblev enke","Gift igen"),
+        border = c("white"),
+        col = c("lightblue", "orange"),
+        ylim = c(0,100),
+        beside = TRUE,
+        main="Hustru igen eller forblive enke?",
+        xlab="Civilstatus",
+        ylab="procent (%)"
+        )
+
+
+```
+
+MANGLER AT FÅ PROCENTERNE VIST I BARGRAFERNE
+
+
+##Hvordan fordelte kvinderne der forblev enker og kvinderne der valgte at gifte sig igen henover de tre perioder.
+
+
+```{r}
+
+
+fegi_tal<-table(df_enker$Gift_eller_Enke, df_enker$Periode) #for den til at tælle hvor mange som forblev enker eller giftede sig igen i forhold til de forskellige perioder
+
+fegi_procent<-prop.table(table(df_enker$Gift_eller_Enke, df_enker$Periode), margin = 2)*100 #laver det om til procenter
+
+barplot(as.matrix(fegi_procent),
+        width = 0.5,
+        border = c("white"),
+        col = c("lightblue", "orange"),
+        ylim = c(0,100),
+        beside = TRUE,
+        main="Hustru igen eller forblive enke?",
+        xlab="Civilstatus",
+        ylab="procent (%)"
+        )
+
+legend(x = "topright",
+               legend = c("Forblev enke", "Giftede sig igen"),
+               fill = c("lightblue", "orange"))
+
+```
+
+
+
+
+
+
+ANDRE GRAFER JEG GERNE VIL LAVE
+
+- antal af første gangs gifte, 2. gangs gifte, 3 gangs gifte og 4. gangs gifte
+
+jeg vil gerne lave en graf hvor jeg finder ud af hvor mange procent, som kun giftede sig en gang, hvor mange procent af kvinderne der valgte at gifte sig 2 gange, 3 gange og 4 gange. spørg johanne om det giver mening at lave sådan en graf. 
+
+jeg vil gerne lave et dataframe hvor der i rows står 
+antal kvinder der kun blev gift en gang
+antal kvinder der giftede sig 2 gange
+3 gange
+4 gange. 
+
+de skal være procentvis fordeling og det skal regnes ud i forhold til antallet af observationer i alt. 
+
+for at tælle dem der blev gift kun en gang skal jeg tælle alle observationer der forblev enke
+for at tælle dem der blev gift 2 gange skal jeg markere alle dem hvor der står gift igen minus antallet af gifte tredje og fjerde gang. 
+for at tælle dem der blev gift 3 gange skal jeg markere alle dem hvor der står gift igen - dem antallet der blev gift 4 gang. 
+gift fire gange skal jeg markere true observationer i gift4
+
+if gift1 =0, antal=1
+
+elif gift 1= 1 og gift2 =0 eller gift1=1 og overlevede=2, antal =2
+elif gift1= 1 and gift 2=1 and gift 3=1 antal=3
+osv. 
+
+
+
+kodejeg indtil videre har
+førstegeetab<-table(df_enker$Gift_eller_Enke)
+
+førstegeedf<-as.data.frame(førstegeetab)
+
+andengeetab<-table(df_enker$Gift_eller_enke2)
+
+andengeedf<-as.data.frame(førstegeetab)
+
+df_giftellerenke1234<- mutate(førstegeedf, gift_anden= førstegeedf$Gift_igen-andengeedf$Gift_igen, "gift 1. gang"=førstegeedf)
+
+
+table(df_enker$Gift_eller_enke2)
+
+table(df_enker$gift4)
+
+table(df_enker$Overlevede_sin_mand)
+
+
+
+
+
+man kan kun tage dem som vides at have overlevet sin mand, ergo er alle NA taget fra i grafen og alle der ikke overlevede deres mand også fjernet derfor er der kun 5 der giftede sig igen 
+
+
+## T-test. Sammenligner den gennemsnitslige alder for kvinder der valgte at forblive enke og kvinder der valgte at gifte sig igen. 
+
+først fjern na. omit fra de kolonner jeg skal bruge hvilket er fødsel og årstal enke 1.
+
+```{r}
+#Først fjerne jeg med Na.omit alle de rækker hvor der er manglende datapunkter
+
+df_enkealder_clean<-na.omit(df_enker[,c("Født", "Enke1_årstal", "Gift_eller_Enke")])
+```
+
+dernæst skal jeg minus årstal enke 1 med fødsel og lave en ny række med dem. 
+```{r}
+#her tilføjer jeg en kolonne hvor jeg regner ud hvad alder kvinderne havde da de blev enke
+df_enkealder<-df_enkealder_clean%>%
+  mutate(alder_som_enke= as.numeric(`Enke1_årstal`)-  as.numeric(`Født`))
+
+```
+
+så skal jeg tjekke at jeg rent faktisk kan bruge en t-test ved at tjekke om normalfordeling det gør jeg visuelt ved hjælp af et histogram og statistisk gennem en shapiro-wilk test
+
+
+```{r}
+hist(df_enkealder$alder_som_enke)
+```
+hist(df_enkealder$alder_som_enke[df_enkealder$Gift_eller_Enke=="Gift_igen"])
+hist(df_enkealder$alder_som_enke[df_enkealder$Gift_eller_Enke=="Forblev_enke"])
+her er det hvis jeg skal lave et histogram for hve gruppe. ca. det samme for shapiro wilk-testen. 
+
+det var okay at gøre det for dem samlet, man kan godt gøre det for dem individuelt men så skal jeg have flere datapunkter
+
+```{r}
+shapiro.test(df_enkealder$alder_som_enke)
+```
+tolk resultat:
+p-værdi større end 0,05: Du finder ikke statistisk evidens for afvigelse fra normalfordeling.
+p-værdi mindre end 0,05: Der er statistisk evidens for afvigelse fra normalfordeling.
+
+        
+        
+Tjekker der ikke er nogle vilde outliers
+
+```{r}
+boxplot(alder_som_enke ~ Gift_eller_Enke,
+        data = df_enkealder)
+```
+
+bruge t-test funktionen til at sammenligne den gennemsnitslige alder med de to grupper. 
+Jeg laver en welch two sample t-test fordi jeg gerne vil undersøge gennemsnitalderen for to uafhængige grupper
+
+```{r}
+t.test(alder_som_enke~Gift_eller_Enke, data= df_enkealder)
+```
+
+Ergo jeg accepterer den alternative hypotese og siger der er en signifikant forskel på gennemsnits alderen for de to grupper. dem der forblev enker var i gennemsnit ældre end dem der valgte at gifte sig igen. så alder kan sige at have indvirkning på det. 
+
+
+
+##regression. Er der sammenhæng mellem længde på 1. ægteskab og valget om at forblive enke eller gifte sig igen.  
+
+Kan længde på 1. ægteskab siges at gøre dig mere tilbøjelig til at blive gift igen eller forblive enke? 
+
+```{r, echo=FALSE}
+pacman::p_load(ggplot2, dplyr, tidyr, broom, performance, see, performance, lmtest, car, nortest)
+```
+
+
+havde selv na. omit funktionen men fik hjælp af chatgpt til at finde ud af mere specifikt at jeg skulle kalde det NA og ikke Na i min database, for ellers virkede koden ikke og hvordan jeg gjorde det så den kun fjernede NA's fra to kolonner.
+```{r} 
+#fjerner rækker med NA
+
+df_enke_clean<-na.omit(df_enker[,c("Længde_på_1", "Gift_eller_Enke")])
+
+```
+
+
+visualiserer så jeg kan undersøge om der muligvis er en signifikant sammenhæng mellem længde på 1 ægteskab og om de forblev enker eller giftede sig igen. 
+
+```{r}
+ggplot(df_enke_clean, aes(x=Gift_eller_Enke, y=Længde_på_1))+
+  geom_violin()+
+  theme_bw()+
+  labs(title = "relationship between civilstatus and length of first marriage", x="civilstatus", y="length of first marriage (years)")
+
+```
+laver også lige et boxplot for god ordens skyld
+
+```{r}
+ggplot(df_enke_clean, aes(x=Gift_eller_Enke, y=Længde_på_1))+
+  geom_boxplot()+
+  theme_bw()+
+  labs(title = "relationship between civilstatus and length of first marriage", x="civilstatus", y="length of first marriage (years)")
+
+```
+
+som det ser ud ligenu er der en overvægt af kvinder som havde et kortere ægteskab, der valgte at gifte sig igen modsat kvinder med et langt ægteskab.
+
+
+
+
+
+
+
+##logistic regression. Er der sammenhæng mellem længde på 1. ægteskab og valget om at forblive enke eller gifte sig igen.  
+
+
+```{r, echo=FALSE}
+install.packages("caTools") 
+library(caTools)
+
+```
+
+havde selv na. omit funktionen men fik hjælp af chatgpt til at finde ud af mere specifikt at jeg skulle kalde det NA og ikke Na i min database, for ellers virkede koden ikke og hvordan jeg gjorde det så den kun fjernede NA's fra to kolonner.
+```{r} 
+#fjerner rækker med NA, for at tilføje flere rækker skal jeg bare sætte komme og skrive den nye kolonne i ""
+
+df_enke_clean <- na.omit(df_enker[,c("Længde_på_1", "Gift_eller_Enke", "Antal_levendebrødre_efter_1enkestatus", "Antal_levendesøstre_efter_1enkestatus")])
+
+```
+
+```{r}
+#Her splitter jeg mit datasæt op i et 80% træningssæt og et 20% testsæt så jeg har noget min model kan træne på og noget jeg så kan teste min model af på i forhold til rigtige observationer. 
+
+split <- sample.split(1:nrow(df_enke_clean), SplitRatio = 0.8)
+
+train_reg <- subset(df_enke_clean, split == "TRUE")
+test_reg <- subset(df_enke_clean, split == "FALSE")
+```
+
+
+```{r}
+#Nu laver jeg den logistiske model
+
+train_reg$Gift_eller_Enke <- as.factor(train_reg$Gift_eller_Enke) #Jeg skal lige lave gift eller enke fra en charachter variable til noget som den logistiske model kan arbejde udfra derfor laver jeg den til en faktor fik her hjælp fra chatgpt til at finde den her kode/funktion
+test_reg$Gift_eller_Enke <- as.factor(test_reg$Gift_eller_Enke)
+
+logistic_model <- glm(Gift_eller_Enke ~ Længde_på_1,
+                    data = train_reg,
+                    family = "binomial")
+logistic_model
+
+summary(logistic_model)
+```
+for at tilføje faktorer på den her kode skal jeg bare sætte + efter variablen længde på 1, og så skrive den næste variabel jeg vil tjekke om har indflydelse. 
+
+
+Hvordan jeg skal tolke resultatet.
+Call: Displays the formula and dataset used for the model.
+Deviance Residuals: Show how well the model fits the data. Smaller values indicate a better fit.
+Coefficients: Reflect the impact of each predictor on the outcome. Includes standard errors.
+Significance Codes: Indicate the statistical significance of each predictor (e.g., ‘***’ means highly significant).
+Dispersion Parameter: Set to 1 for logistic regression, as it uses a binomial distribution.
+Null Deviance: The model’s deviance without predictors (only the intercept).
+Residual Deviance: The model’s deviance after adding predictors. A lower value suggests a better fit.
+AIC: Used to compare models. Lower AIC indicates a better model with fewer unnecessary variables.
+Fisher Scoring Iterations: The number of steps taken to find the best-fitting model.
+
+nu har jeg så lavet en regressions model baseret på min træningsdata. nu skal jeg teste hvor god den er ud fra mit testdata. 
+
+fik hjælp af chatgpt her til at få den sidste del af koden. det den sidste del af koden gør er at den siger hvis predict_reg får værdier der er over eller lig med 0,5 altså 50 % så skal den tidele kvinden værdien forblev enke altså hun valgte ikek at gifte sig er værdien under 0,5 så blev hun gift igen.  
+
+
+
+```{r}
+predict_reg <- predict(logistic_model,test_reg,type = "response")
+
+predict_reg <- ifelse(predict_reg >= 0.5, "Gift_igen", "Forblev_enke")
+```
+
+kode der ikke virkede fra før
+
+predict_reg <- predict(logistic_model,
+                       test_reg, type = "response")
+
+predict_reg <- as.data.frame(predict_reg)
+predict_reg
+
+
+
+```{r, echo=FALSE}
+library(ggplot2)
+install.packages("reshape2")
+library(reshape2)
+```
+
+
+
+```{r}
+
+conf_matrix <- table(test_reg$Gift_eller_Enke, predict_reg)
+
+
+conf_matrix
+
+
+```
+
+```{r}
+# Reshape the confusion matrix for ggplot2
+conf_matrix_melted <- as.data.frame(conf_matrix)
+colnames(conf_matrix_melted) <- c("Actual", "Predicted", "Count")
+
+ggplot(conf_matrix_melted, aes(x = Actual, y = Predicted, fill = Count)) +
+  geom_tile() +
+  geom_text(aes(label = Count), color = "black", size = 6) +  # Add text labels
+  scale_fill_gradient(low = "white", high = "blue") +
+  labs(title = "Confusion Matrix Heatmap", x = "Actual", y = "Predicted") +
+  theme_minimal()
+```
+
+
+
+
+
+laver simple regression. jeg brugte chatgpt til at finde ud af jeg skulle bruge factor funktionen for at fortælle at gift eller enke er kategorisk men så jeg kan bruge det i regressions modellen. jeg fandt også frem til glm funktionen ved at den forklarede mig om forskellige regressionsmodeller.
+
+```{r}
+df_enke_clean$Gift_eller_Enke <- factor(df_enke_clean$Gift_eller_Enke)
+
+model_lgee <- glm(Gift_eller_Enke ~ Længde_på_1, data = df_enke_clean, family=binomial())
+summary(model_lgee)
+```
+brug for hjælp til at forstå den her nu når det er kategorisk. 
+
+jeg kan ikke lave liniær regression men skal lave en regressionsmodel der gælder for kategorisk variabler læs hjemmeside
+https://www.cambridge.org/core/books/regression-for-categorical-data/binary-regression-the-logit-model/CF80453FCB0299B40DCE5E736F37933E
+
+og hjælp til at inkluderer andre faktorer som antallet af levende brødre, antallet af levende søstre. antallet af levende børn. alder på kvinden. 
+
+giver det mening syntes hun når alder er upræcist for mange. 
+
+
+
+
+
+
+
+
+##spørgsmål til Johanne
+
+- spørg Johanne hvis hende excel og spørg om hun har nogle gode ideer?
+
+lav binærregression og se om du kan forudse om de vælger at gifte sig eller ej. lav logistisk regression
+
+https://www.geeksforgeeks.org/r-language/logistic-regression-in-r-programming/
+
+
+
+
+- spørg Johanne omkring hvordan man bruger python i R for det vil være virkelig rart.
+
+
+- spørg johanne hvordan jeg cloner så jeg kan gemme på git i min Enker mappe lige nu virker det ikke. 
+
+
+- spørg johanne om mine procenter i prop.table funktionen bliver regnet ud baseret på alle observationer for tænker umiddelbart det ikke giver mening men at der derimod skal udregnes procenter for den indviduelle periode og ikke ale observerede kvinder men ved det ikke helt. 
+
+
+
+jeg kan putte min punkter ovenpå barplottet og også min standard deviation på et barplot
+geom_errorbar() se på den her. 
+
+
+- spørg om jeg skal lave en shapiro wilk og histogram i min t-test for de to indviduelle grupper og ikke samlet. Når jeg får mere data så skal jeg lave dem for de to grupper, men ligenu giver det ikke mening at gøre. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##forskellige forsøg jeg ikke sletetr hvis jeg skal bruger funktioner senere
+
+
+EG VIL GERNE LAVE EN HVOR DER OGSÅ VAR SAMMENLIGNING MELLEM DE FORSKELLIGE PERIODER HVORDAN forblev enke og gift igen fordeler sig over de tre perioder. MIT FORSØG ER NEDENUNDER
+
+lav if statement
+
+gee<-count(df_enker, Gift_eller_Enke) #tæller hvor mange der blev gift igen og hvor mange der blev enker og laver et dataframe med det 
+
+ 
+jeg vil gerne lave en if statement der siger:
+
+hvis periode er lig med 1350-1500 og der står gift igen i, enke eller gift igen kolonne så tæl en, hvis der står enke så tæl en i en anden kollone. det vil jeg have den til at gøre for 1500-1600 og 1600-1660 også
+
+"1500-1600 gift igen" <-0
+"1500-1600 forblev enke"<- 0
+
+"1600-1660 gift igen" <-0
+"1600-1660 forblev enke"<- 0
+
+if statement jeg gik igang med at lave:
+
+"1350-1500 gift igen"<- 0
+"1350-1500 forblev enke" <-0
+
+
+if (df_enker$Periode == "1350-1500" & df_enker$Gift_eller_Enke == "Gift_igen"){sum("1350-1500 gift igen"+1)}
+  else sum("1350-1500 forblev enke"+1)})
+
+
+df_enker_filtreret <- df_enker %>%
+  filter(Periode == "1350-1500",
+         Gift_eller_Enke == "Gift_igen")
+         
+         
+den her kode kan filtrere dem men så vil jeg efterfølgende gerne have talt dem og lavet en matrix af dem som jeg kan bruge til at lave et barplot. kan jeg ændre funktionen så jeg har count eller måske sum funktionen med så mit output bliver et tal jeg kan putte ind i en ny funktion
+
+
+
+
+
+
+
+
+
+
+
+
+
+
