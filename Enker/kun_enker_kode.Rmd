@@ -26,7 +26,7 @@ library(readr)
 
 
 ```{r}
-df_enker <- read_csv2("/work/CulturalDataScience/Enker/df_enker.csv")
+df_enker <- read_csv2("/work/CulturalDataScience/Bachelor/Enker/df_enker.csv")
 
 ```
 
@@ -51,12 +51,16 @@ gee_percentage<-gee_clean%>%
   mutate("I procent(%)"=round(n/sum(n)*100, 1))
 
 gee_percentage
+
+gee_procenter <- gee_percentage[["I procent(%)"]] #brugte chatgpt til den her kode, jeg henter den specifikke kollone i min dataframe og gemmer den i en ny variabel så jeg nemmere kan bruge det i mit barplot. 
+
 ```
 
-Visuel fremstilling for hele perioden 1350-1660 hvor mange forblev enker og hvor mange valgte at gifte sig igen i procent
+#Visuel fremstilling for hele perioden 1350-1660 hvor mange forblev enker og hvor mange valgte at gifte sig igen i procent
+
 ```{r}
 #Laver et barplot
-barplot(as.matrix(gee_percentage [, c("I procent(%)")]),
+gift_eller_enke_bp<-barplot(as.matrix(gee_procenter),
         width = 0.5,
         names.arg= c("Forblev enke","Gift igen"),
         border = c("white"),
@@ -68,13 +72,17 @@ barplot(as.matrix(gee_percentage [, c("I procent(%)")]),
         ylab="procent (%)"
         )
 
+text(x = gift_eller_enke_bp,
+     y = as.matrix(gee_procenter),
+     labels = paste0(round(gee_procenter, 1), "%"),
+     pos = 3,
+     cex = 0.8) 
+
 
 ```
 
-MANGLER AT FÅ PROCENTERNE VIST I BARGRAFERNE
 
-
-##Hvordan fordelte kvinderne der forblev enker og kvinderne der valgte at gifte sig igen henover de tre perioder.
+#Hvordan fordelte kvinderne der forblev enker og kvinderne der valgte at gifte sig igen henover de tre perioder.
 
 
 ```{r}
@@ -84,7 +92,7 @@ fegi_tal<-table(df_enker$Gift_eller_Enke, df_enker$Periode) #for den til at tæl
 
 fegi_procent<-prop.table(table(df_enker$Gift_eller_Enke, df_enker$Periode), margin = 2)*100 #laver det om til procenter
 
-barplot(as.matrix(fegi_procent),
+forblev_enke_eller_gift_igenbp<-barplot(as.matrix(fegi_procent),
         width = 0.5,
         border = c("white"),
         col = c("lightblue", "orange"),
@@ -99,63 +107,110 @@ legend(x = "topright",
                legend = c("Forblev enke", "Giftede sig igen"),
                fill = c("lightblue", "orange"))
 
+
+text(x = forblev_enke_eller_gift_igenbp,
+     y = as.matrix(fegi_procent),
+     labels = paste0(round(as.matrix(fegi_procent), 1), "%"),
+     pos = 1,
+     cex = 0.8) 
+
+
 ```
 
 
 
 
 
+## Graf for antal af første gangs gifte, 2. gangs gifte, 3 gangs gifte og 4. gangs gifte.
 
-ANDRE GRAFER JEG GERNE VIL LAVE
+benyttede mig af chatgpt til at få hjælp til ifelse funktionen
+```{r}
+#først laver jeg mine kategoriske værdier binære, så det er nemmere at regne ud hvor mange der blev gift de forskellige antal gange
 
-- antal af første gangs gifte, 2. gangs gifte, 3 gangs gifte og 4. gangs gifte
+df_enker$gift_eller_enke_binary <- ifelse(df_enker$Gift_eller_Enke == "Forblev_Enke", 0, 1)
 
-jeg vil gerne lave en graf hvor jeg finder ud af hvor mange procent, som kun giftede sig en gang, hvor mange procent af kvinderne der valgte at gifte sig 2 gange, 3 gange og 4 gange. spørg johanne om det giver mening at lave sådan en graf. 
+df_enker$gift_eller_enke2_binary <- ifelse(
+  is.na(df_enker$Gift_eller_enke2), NA,
+  ifelse(df_enker$Gift_eller_enke2 == "Forblev_Enke", 0, 1)
+)
 
-jeg vil gerne lave et dataframe hvor der i rows står 
-antal kvinder der kun blev gift en gang
-antal kvinder der giftede sig 2 gange
-3 gange
-4 gange. 
-
-de skal være procentvis fordeling og det skal regnes ud i forhold til antallet af observationer i alt. 
-
-for at tælle dem der blev gift kun en gang skal jeg tælle alle observationer der forblev enke
-for at tælle dem der blev gift 2 gange skal jeg markere alle dem hvor der står gift igen minus antallet af gifte tredje og fjerde gang. 
-for at tælle dem der blev gift 3 gange skal jeg markere alle dem hvor der står gift igen - dem antallet der blev gift 4 gang. 
-gift fire gange skal jeg markere true observationer i gift4
-
-if gift1 =0, antal=1
-
-elif gift 1= 1 og gift2 =0 eller gift1=1 og overlevede=2, antal =2
-elif gift1= 1 and gift 2=1 and gift 3=1 antal=3
-osv. 
+df_enker$overlevede_sin_mand_binary <- ifelse(
+  is.na(df_enker$Overlevede_sin_mand), NA,
+  ifelse(df_enker$Overlevede_sin_mand == "TRUE" , 1, 0)
+)
 
 
-
-kodejeg indtil videre har
-førstegeetab<-table(df_enker$Gift_eller_Enke)
-
-førstegeedf<-as.data.frame(førstegeetab)
-
-andengeetab<-table(df_enker$Gift_eller_enke2)
-
-andengeedf<-as.data.frame(førstegeetab)
-
-df_giftellerenke1234<- mutate(førstegeedf, gift_anden= førstegeedf$Gift_igen-andengeedf$Gift_igen, "gift 1. gang"=førstegeedf)
+df_enker$overlevede_sin_3mand_binary <- ifelse(
+  is.na(df_enker$Overlevede_sin_3mand), NA,
+  ifelse(df_enker$Overlevede_sin_3mand == "TRUE" , 1, 0)
+)
 
 
-table(df_enker$Gift_eller_enke2)
-
-table(df_enker$gift4)
-
-table(df_enker$Overlevede_sin_mand)
-
+df_enker$gift4_binary <- ifelse(
+  is.na(df_enker$gift4), NA,
+  ifelse(df_enker$gift4 == "TRUE" , 1, 0)
+)
 
 
+```
+Her vælger jeg at tilskrive dem som vi ikke ved døde før deres mand eller dem som døde før deres mand at de blev gift 2 gange, de havde ikke valget men de blev jo stadig gift to gange. eksempelvis hvis en kvinde valgte at gifte sig anden gang efter hun blev enke, så ved vi ikke om hun døde inden hendes anden mand så derfor står der NA i kolonnen om hun forblev enke eller gift igen. men der står ukendt i om hun overlevede manden eller ej. det vigtige er at notere sig at ukendt ikke er det samme som NA i det her tilfælle, da jeg havede brug for to måder at skrive NA, en kategorisk og en NA jeg kunne fjerne. NA er i kollonen overlevede_sin_mand altså lig med at det var irrelevant da hun ikke blev gift mere en en gang og ukendt betyder hun blev gift 2 gange men vi ved ikke om hun overlevede sig mand eller ej. 
+
+  
+  brugte chatgpt til at forklare mig om case_when funktionen. har selv lavet koden. 
+
+ 
+```{r}
+# her laver jeg en ny kollone kaldet antal bryllupper hvor jeg beder dem om at give antal bryllupper en bestemt værdi hvis rækken opfylder nogle conditions eksempel med den første hvis gift eller enke binary kolonnen er lig med 0 så skal den skrive at de kun oplevede et bryllup i deres liv.
+
+df_enker<- df_enker%>%
+  mutate(antal_bryllupper= case_when(gift_eller_enke_binary == 0 ~ 1, 
+                                     gift_eller_enke_binary == 1 & (gift_eller_enke2_binary == 0 | overlevede_sin_mand_binary == 0)~ 2,
+                                     gift_eller_enke_binary == 1 & gift_eller_enke2_binary == 1 & overlevede_sin_3mand_binary == 0 ~ 3,
+                                     gift_eller_enke_binary == 1 & gift_eller_enke2_binary == 1 & overlevede_sin_3mand_binary == 1 & gift4_binary == 1 ~ 4,
+                                     TRUE ~ NA_real_
+                                     ))
 
 
-man kan kun tage dem som vides at have overlevet sin mand, ergo er alle NA taget fra i grafen og alle der ikke overlevede deres mand også fjernet derfor er der kun 5 der giftede sig igen 
+```
+
+nu laver jeg en table med dem for at se hvor mange der blev gift de forskellige gange og så udregner jeg procent og plotter det i en graf.
+
+```{r}
+
+antal_bryllupper_tal<-table(df_enker$antal_bryllupper) #tæller op hvor mange der er af hver
+
+
+
+antal_bryllupper_procent<-round(prop.table(antal_bryllupper_tal)*100, 2) #laver det om til procenter
+
+
+```
+
+
+```{r}
+#plotter det ind i en graf nu
+
+bp_bryllupper<-barplot(as.matrix(antal_bryllupper_procent),
+        width = 0.5,
+        border = c("white"),
+        col = c("lightblue", "orange", "pink", "red"),
+        ylim = c(0,100),
+        names.arg = c("1 gang", "2 gange", "3 gange", "4 gange"),
+        beside = TRUE,
+        main="Antallet af gange de blev gift",
+        xlab="Antal gange de blev gift",
+        ylab="procent (%)"
+        )
+
+# Vis procenterne oven på søjlerne fik hjælp af chatgpt til koden her
+text(x = bp_bryllupper, # skal være med bestemmer hvor teksten skal være i forhold til x-aksen bp er mit barplot, så jeg siger den skal gøre det i forhold til mit barplot
+     y = as.matrix(antal_bryllupper_procent), #y bestemmer hvor højt teksten skal være på y aksen, jeg siger den skal være ligeså højt på grafen som mine søjler, ved at give den mine procentværdier som indikator for højden.
+     labels = paste0(round(as.matrix(antal_bryllupper_procent), 1), "%"), #labels er funktionen hvor jeg skriver den egentlig tekst der skal stå, paste0 tilføjer et % efter hvert tal. Round runder mine tal ned til 1 decimal. 
+     pos = 3, #bestemmer hvor teksten skal stå 3 er over søjlerne
+     cex = 0.8) #bestemmer skriftstørrelsen
+
+
+```
 
 
 ## T-test. Sammenligner den gennemsnitslige alder for kvinder der valgte at forblive enke og kvinder der valgte at gifte sig igen. 
@@ -421,72 +476,3 @@ geom_errorbar() se på den her.
 
 
 - spørg om jeg skal lave en shapiro wilk og histogram i min t-test for de to indviduelle grupper og ikke samlet. Når jeg får mere data så skal jeg lave dem for de to grupper, men ligenu giver det ikke mening at gøre. 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##forskellige forsøg jeg ikke sletetr hvis jeg skal bruger funktioner senere
-
-
-EG VIL GERNE LAVE EN HVOR DER OGSÅ VAR SAMMENLIGNING MELLEM DE FORSKELLIGE PERIODER HVORDAN forblev enke og gift igen fordeler sig over de tre perioder. MIT FORSØG ER NEDENUNDER
-
-lav if statement
-
-gee<-count(df_enker, Gift_eller_Enke) #tæller hvor mange der blev gift igen og hvor mange der blev enker og laver et dataframe med det 
-
- 
-jeg vil gerne lave en if statement der siger:
-
-hvis periode er lig med 1350-1500 og der står gift igen i, enke eller gift igen kolonne så tæl en, hvis der står enke så tæl en i en anden kollone. det vil jeg have den til at gøre for 1500-1600 og 1600-1660 også
-
-"1500-1600 gift igen" <-0
-"1500-1600 forblev enke"<- 0
-
-"1600-1660 gift igen" <-0
-"1600-1660 forblev enke"<- 0
-
-if statement jeg gik igang med at lave:
-
-"1350-1500 gift igen"<- 0
-"1350-1500 forblev enke" <-0
-
-
-if (df_enker$Periode == "1350-1500" & df_enker$Gift_eller_Enke == "Gift_igen"){sum("1350-1500 gift igen"+1)}
-  else sum("1350-1500 forblev enke"+1)})
-
-
-df_enker_filtreret <- df_enker %>%
-  filter(Periode == "1350-1500",
-         Gift_eller_Enke == "Gift_igen")
-         
-         
-den her kode kan filtrere dem men så vil jeg efterfølgende gerne have talt dem og lavet en matrix af dem som jeg kan bruge til at lave et barplot. kan jeg ændre funktionen så jeg har count eller måske sum funktionen med så mit output bliver et tal jeg kan putte ind i en ny funktion
-
-
-
-
-
-
-
-
-
-
-
-
-
-
